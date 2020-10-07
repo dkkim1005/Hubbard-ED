@@ -1,0 +1,52 @@
+#!/bin/bash
+# cpu or gpu
+MACHINE=gpu
+# EIGEN sparse matrix library
+EIGENHEADER=/usr/local/include/eigen3
+# SPECTRA sparse eigen solver for the cpu code
+SPECTRAHEADER=/usr/local/include/Spectra
+# MAGMA sparse eigen solver for the gpu code
+MAGMAHEADER=/data/lib/magma-2.5.3/include
+MAGMALIBLOC=/data/lib/magma-2.5.3/lib
+# BLAS 
+BLASLIBLOC=$(pkg-config mkl-dynamic-lp64-iomp --libs --cflags)
+TARGET=${MACHINE}_main
+CFLAGS=-std=c++11
+CUDAFLAGS="$CFLAGS --expt-relaxed-constexpr"
+
+
+if [ $MACHINE != cpu ] && [ $MACHINE != gpu ]; then
+  echo "'MACHINE' parameter should be 'cpu' or 'gpu'."
+  exit -1
+fi
+
+FILENAMES=($(find ./src -type f))
+for FILENAME in ${FILENAMES[@]}; do
+  if [ $(echo $FILENAME | grep '.cpp$') ]; then
+    echo "compiling $FILENAME..."
+    g++ -c -o $FILENAME.o $FILENAME $CFLAGS -I$EIGENHEADER
+  fi
+  if [ $MACHINE = gpu ]; then
+    if [ $(echo $FILENAME | grep '.cu$') ]; then
+      echo "compiling $FILENAME..."
+      nvcc -c -o $FILENAME.o $FILENAME $CUDAFLAGS -I$EIGENHEADER -I$MAGMAHEADER
+    fi
+  fi
+done
+mv ./src/*.o ./
+
+if [ $MACHINE = cpu ]; then
+  if ! [[ -e cpu_main.cpp ]]; then echo "'cpu_main.cpp' is not exist."; exit -1; fi
+  echo "compiling cpu_main.cpp..."
+  g++ -c -o cpu_main.o cpu_main.cpp $CFLAGS -I$EIGENHEADER -I$SPECTRAHEADER
+  g++ -o $TARGET *.o $CFLAGS
+elif [ $MACHINE = gpu ]; then
+  if ! [[ -e gpu_main.cu ]]; then echo "'gpu_main.cu' is not exist."; exit -1; fi
+  echo "compiling gpu_main.cu..."
+  nvcc -c -o gpu_main.o gpu_main.cu $CUDAFLAGS -I$EIGENHEADER -I$MAGMAHEADER
+  nvcc -o $TARGET *.o $CFLAGS -L$MAGMALIBLOC -lmagma -lmagma_sparse $BLASLIBLOC
+fi
+rm *.o
+if [ -e $TARGET ]; then
+  echo "done."
+fi

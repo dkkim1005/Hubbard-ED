@@ -1,0 +1,4 @@
+cpu_main
+gpu_main
+residualNorms
+*.o
