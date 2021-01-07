@@ -1,3 +1,5 @@
+// Copyright (c) 2020-2021 Dongkyu Kim (dkkim1005@gmail.com)
+
 #include "../include/numbasis.hpp"
 
 namespace Fermion {
@@ -13,6 +15,31 @@ Fockstate::Fockstate(const unsigned int nsites, const unsigned int nparticles):
   {
     data_[i] = s0;
     s0 = bittool::next_set_of_n_elements(s0);
+  }
+}
+
+Fockstate::Fockstate(const unsigned int nsites, const unsigned int nspinsup, const unsigned int nspinsdw):
+  data_(::combination(nsites, nspinsup)*::combination(nsites, nspinsdw)),
+  knsites(nsites),
+  knparticles(nspinsup+nspinsdw)
+{
+  const int nbasisUp = ::combination(nsites, nspinsup), nbasisDw = ::combination(nsites, nspinsdw);
+  unsigned int s1, s2;
+  s1 = 0u;
+  for (int i=0; i<nspinsup; ++i)
+    s1 = (s1 << 1)+1;
+  for (unsigned int idx1 = 0u; idx1 < nbasisUp; idx1++)
+  {
+    s2 = 0u;
+    for (int i=0; i<nspinsdw; ++i)
+      s2 = (s2 << 1)+1;
+    for (unsigned int idx2 = 0u; idx2 < nbasisDw; idx2++)
+    {
+      const unsigned int idx = idx1*nbasisDw+idx2;
+      data_[idx] = (s1 << knsites)+s2;
+      s2 = bittool::next_set_of_n_elements(s2);
+    }
+    s1 = bittool::next_set_of_n_elements(s1);
   }
 }
 
@@ -34,14 +61,14 @@ void Fockstate::print(const unsigned int idx) const
 
 unsigned int Fockstate::search(const unsigned int & s) const
 {
-  assert(bittool::bitcount(s) == knparticles);
+  //assert(bittool::bitcount(s) == knparticles);
   return this->binary_search_(s);
 }
 
 unsigned int Fockstate::search(const Bitpair & spair) const
 {
   //std::cout << (bittool::bitcount(spair.first)+bittool::bitcount(spair.second)) << std::endl;
-  assert((bittool::bitcount(spair.first)+bittool::bitcount(spair.second)) == knparticles);
+  //assert((bittool::bitcount(spair.first)+bittool::bitcount(spair.second)) == knparticles);
   unsigned int s = (spair.first << knsites) + spair.second;
   return this->binary_search_(s);
 }

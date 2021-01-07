@@ -1,3 +1,5 @@
+// Copyright (c) 2020-2021 Dongkyu Kim (dkkim1005@gmail.com)
+
 #include "../include/magma_eigen_solver.cuh"
 
 MAGMA_DLOBPCG_WRAPPER::MAGMA_DLOBPCG_WRAPPER(const int m):
@@ -12,7 +14,7 @@ void MAGMA_DLOBPCG_WRAPPER::construct_CSR_format(int * row, int * col, double * 
 {
   if (IsAllocated)
   {
-    std::cerr << "plz excute 'free' method firtst." << std::flush << std::endl;
+    std::cerr << "plz excute 'free' method first." << std::flush << std::endl;
     return;
   }
   // convert to the csr format

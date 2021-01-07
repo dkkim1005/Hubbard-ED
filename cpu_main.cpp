@@ -1,3 +1,5 @@
+// Copyright (c) 2020-2021 Dongkyu Kim (dkkim1005@gmail.com)
+
 #include <iostream>
 #include "./include/Hamiltonian.hpp"
 #include "./include/Arnoldi_solver.hpp"
@@ -12,8 +14,6 @@ int main(int argc, char * argv[])
   options.push_back(pair_t("np", "# of particle numbers"));
   options.push_back(pair_t("t", "hopping element"));
   options.push_back(pair_t("U", "onsite interaction"));
-  options.push_back(pair_t("mu1", "chemical potential (spin up)"));
-  options.push_back(pair_t("mu2", "chemical potential (spin down)"));
   // env; default value
   defaults.push_back(pair_t("t", "1"));
   // parser for arg list
@@ -22,17 +22,26 @@ int main(int argc, char * argv[])
     ly = parser.find<unsigned int>("ly");
   const unsigned int nsites = lx*ly,
     nparticles = parser.find<unsigned int>("np");
-  const unsigned int HilbertSize = ::combination(2*nsites, nparticles);
   const double t = parser.find<double>("t"),
-    U = parser.find<double>("U"),
-    mu1 = parser.find<double>("mu1"),
-    mu2 = parser.find<double>("mu2");
+    U = parser.find<double>("U");
+
+  // number basis (Fock space of fixed # of particles)
+  Fermion::Fockstate nbasis(nsites, nparticles);
+  const unsigned int HilbertSize = nbasis.size();
+  // matrix container to deploy Hubbard Hamiltonian
   EigenSparseMatrix smatrix(HilbertSize);
+  // lattice information
   SquareLattice lattice(lx, ly);
-  HubbardHamiltonian Hamiltonian(nsites, nparticles);
+
   std::cout << "# construct sparse matrix... " << std::flush;
-  Hamiltonian.construct_matrix(smatrix, lattice, t, U, mu1, mu2);
+  // parameter set of Hubbard model
+  HubbardParams params;
+  params.t = t;
+  params.U = U;
+  params.V = std::vector<double>(nsites, 0.0);
+  construct_hubbard_hamiltonian(smatrix, nbasis, lattice, params);
   std::cout << "done." << std::endl << std::flush;
+
   auto & rawData = smatrix.get_data();
   rawData.prune(1e-15);
   rawData.makeCompressed();
@@ -43,6 +52,6 @@ int main(int argc, char * argv[])
   EIGEN_SOLVER::EIGEN::SPECTRA::SymEigsSolver(smatrix.get_data(), evalues, evectors, nev, 30);
   std::cout << "done." << std::endl << std::flush;
   std::cout << "energy: " << evalues << std::endl;
-  std::cout << "polarization: " << Hamiltonian.meas_polarization(&evectors(0)) << std::endl;
+
   return 0;
 }

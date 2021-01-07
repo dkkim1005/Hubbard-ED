@@ -1,3 +1,5 @@
+// Copyright (c) 2020-2021 Dongkyu Kim (dkkim1005@gmail.com)
+
 #pragma once
 
 #include <iostream>
@@ -23,11 +25,14 @@ inline unsigned int combination(const unsigned int n, const unsigned int r)
 typedef std::pair<unsigned int, unsigned int> Bitpair;
 
 namespace Fermion {
-// the number of sites and particles are fixed; Spin imbalance is considered here.
+// the number of sites and particles are fixed.
 class Fockstate
 {
 public:
+  // fix the total number of particles
   Fockstate(const unsigned int nsites, const unsigned int nparticles);
+  // fix the number of particles for each spin state
+  Fockstate(const unsigned int nsites, const unsigned int nspinsup, const unsigned int nspinsdw);
   Fockstate(const Fockstate & rhs) = delete;
   Fockstate & operator=(const Fockstate & rhs) = delete;
   // size of the Hilbert space 
@@ -42,6 +47,8 @@ public:
   unsigned int search(const unsigned int & s) const;
   // return the index for the state 's' in terms of the Bitpair type
   unsigned int search(const Bitpair & spair) const;
+  unsigned get_nsites() const { return knsites; }
+  unsigned get_nparticles() const { return knparticles; }
 private:
   unsigned int binary_search_(const unsigned int s) const;
   std::vector<unsigned int> data_;
